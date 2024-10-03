@@ -24,22 +24,56 @@ std::stack<Position> valid_positions;
 Position load_maze(const std::string& file_name) {
     // TODO: Implemente esta função seguindo estes passos:
     // 1. Abra o arquivo especificado por file_name usando std::ifstream
+    std::ifstream arquivo(file_name);
+    // 6. Trate possíveis erros (arquivo não encontrado, formato inválido, etc.)    
+    if(!arquivo.is_open()){
+        std::cerr << "Erro ao abrir o arquivo" << std::endl;
+        return 1;
+    }
+    if (arquivo.fail() && !arquivo.eof()) {
+        std::cerr << "Erro: Formato inválido encontrado no arquivo." << std::endl;
+        arquivo.close();
+        return 1;
+    }
     // 2. Leia o número de linhas e colunas do labirinto
+    arquivo >> num_rows >> num_cols;
     // 3. Redimensione a matriz 'maze' de acordo (use maze.resize())
+    maze.resize(num_rows);
+    for(int i = 0; i < maze.size(); i++){
+        maze[i].resize(num_cols);
+    }
     // 4. Leia o conteúdo do labirinto do arquivo, caractere por caractere
+    std::string linha;
+    while (std::getline(arquivo, linha)) { // Lê cada linha do arquivo
+        std::vector<char> linha_vec(linha.begin(), linha.end()); // Cria um vetor de char para a linha
+        matriz.push_back(linha_vec);
+    }
     // 5. Encontre e retorne a posição inicial ('e')
-    // 6. Trate possíveis erros (arquivo não encontrado, formato inválido, etc.)
+    Position position;
+    for(int i = 0; i < maze.size(); i++){
+        for(int j = 0; j < maze.size(); j++){
+            if(maze[i][j] == "e"){
+                position.row = i;
+                position.col = j;
+            }
+        }
+    }
     // 7. Feche o arquivo após a leitura
+     arquivo.close();
     
-    return {-1, -1}; // Placeholder - substitua pelo valor correto
+    return position; // Placeholder - substitua pelo valor correto
 }
 
 // Função para imprimir o labirinto
 void print_maze() {
     // TODO: Implemente esta função
     // 1. Percorra a matriz 'maze' usando um loop aninhado
-    // 2. Imprima cada caractere usando std::cout
-    // 3. Adicione uma quebra de linha (std::cout << '\n') ao final de cada linha do labirinto
+    for(int i = 0; i < maze.size(); i++){
+        for(int j = 0; j < maze.size(); j++){
+            std::cout << maze[i][j]; // 2. Imprima cada caractere usando std::cout
+        }
+        std::cout << "\n"; // 3. Adicione uma quebra de linha (std::cout << '\n') ao final de cada linha do labirinto
+    }
 }
 
 // Função para verificar se uma posição é válida
