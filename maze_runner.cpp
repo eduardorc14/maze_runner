@@ -11,7 +11,7 @@ using Maze = std::vector<std::vector<char>>;
 // Estrutura para representar uma posição no labirinto
 struct Position {
     int row;
-    int col;
+    int col; 
 };
 
 // Variáveis globais
@@ -28,31 +28,20 @@ Position load_maze(const std::string& file_name) {
     // 6. Trate possíveis erros (arquivo não encontrado, formato inválido, etc.)    
     if(!arquivo.is_open()){
         std::cerr << "Erro ao abrir o arquivo" << std::endl;
-        return 1;
+        return {-1, -1};
     }
-    if (arquivo.fail() && !arquivo.eof()) {
-        std::cerr << "Erro: Formato inválido encontrado no arquivo." << std::endl;
-        arquivo.close();
-        return 1;
-    }
+    
     // 2. Leia o número de linhas e colunas do labirinto
     arquivo >> num_rows >> num_cols;
     // 3. Redimensione a matriz 'maze' de acordo (use maze.resize())
-    maze.resize(num_rows);
-    for(int i = 0; i < maze.size(); i++){
-        maze[i].resize(num_cols);
-    }
+    maze.resize(num_rows, std::vector<char>(num_cols));
     // 4. Leia o conteúdo do labirinto do arquivo, caractere por caractere
-    std::string linha;
-    while (std::getline(arquivo, linha)) { // Lê cada linha do arquivo
-        std::vector<char> linha_vec(linha.begin(), linha.end()); // Cria um vetor de char para a linha
-        matriz.push_back(linha_vec);
-    }
     // 5. Encontre e retorne a posição inicial ('e')
-    Position position;
-    for(int i = 0; i < maze.size(); i++){
-        for(int j = 0; j < maze.size(); j++){
-            if(maze[i][j] == "e"){
+    Position position = {-1, -1};
+    for(int i = 0; i < num_rows; i++){
+        for(int j = 0; j < num_cols; j++){
+            arquivo >> maze[i][j];
+            if(maze[i][j] == 'e'){
                 position.row = i;
                 position.col = j;
             }
@@ -68,39 +57,63 @@ Position load_maze(const std::string& file_name) {
 void print_maze() {
     // TODO: Implemente esta função
     // 1. Percorra a matriz 'maze' usando um loop aninhado
-    for(int i = 0; i < maze.size(); i++){
-        for(int j = 0; j < maze.size(); j++){
+    for(int i = 0; i < num_rows; i++){
+        for(int j = 0; j < num_cols; j++){
             std::cout << maze[i][j]; // 2. Imprima cada caractere usando std::cout
         }
         std::cout << "\n"; // 3. Adicione uma quebra de linha (std::cout << '\n') ao final de cada linha do labirinto
     }
+    std::cout << "\n";
 }
 
 // Função para verificar se uma posição é válida
 bool is_valid_position(int row, int col) {
     // TODO: Implemente esta função
     // 1. Verifique se a posição está dentro dos limites do labirinto
-    //    (row >= 0 && row < num_rows && col >= 0 && col < num_cols)
+    if(row >= 0 && row < num_rows && col >= 0 && col < num_cols){
+        return maze[row][col] == 'x' || maze[row][col] == 's';
+    }
+    return false;
     // 2. Verifique se a posição é um caminho válido (maze[row][col] == 'x')
     // 3. Retorne true se ambas as condições forem verdadeiras, false caso contrário
-
-    return false; // Placeholder - substitua pela lógica correta
+    // Placeholder - substitua pela lógica correta
 }
 
 // Função principal para navegar pelo labirinto
 bool walk(Position pos) {
     // TODO: Implemente a lógica de navegação aqui
-    // 1. Marque a posição atual como visitada (maze[pos.row][pos.col] = '.')
     // 2. Chame print_maze() para mostrar o estado atual do labirinto
+    print_maze();
     // 3. Adicione um pequeno atraso para visualização:
-    //    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     // 4. Verifique se a posição atual é a saída (maze[pos.row][pos.col] == 's')
     //    Se for, retorne true
+    if(maze[pos.row][pos.col] == 's')
+        return true;
+    
+    // 1. Marque a posição atual como visitada (maze[pos.row][pos.col] = '.')
+    maze[pos.row][pos.col] = '.';
     // 5. Verifique as posições adjacentes (cima, baixo, esquerda, direita)
     //    Para cada posição adjacente:
+    std::vector<Position> directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
     //    a. Se for uma posição válida (use is_valid_position()), adicione-a à pilha valid_positions
+    for (int i = 0; i < directions.size(); i++){
+        int new_row = pos.row + directions[i].row;
+        int new_col = pos.col + directions[i].col;
+        if(is_valid_position(new_row, new_col)){
+            valid_positions.push({new_row, new_col});
+        }
+    }
     // 6. Enquanto houver posições válidas na pilha (!valid_positions.empty()):
     //    a. Remova a próxima posição da pilha (valid_positions.top() e valid_positions.pop())
+    while(!valid_positions.empty()){
+        Position next_pos = valid_positions.top();
+        valid_positions.pop();
+
+        if(walk(next_pos)){
+            return true;
+        }
+    }
     //    b. Chame walk recursivamente para esta posição
     //    c. Se walk retornar true, propague o retorno (retorne true)
     // 7. Se todas as posições foram exploradas sem encontrar a saída, retorne false
