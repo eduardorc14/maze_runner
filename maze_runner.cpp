@@ -20,6 +20,7 @@ int num_rows;
 int num_cols;
 std::stack<Position> valid_positions;
 
+std::vector<std::thread> threads; // Para armazenar as threads criadas
 // Função para carregar o labirinto de um arquivo
 Position load_maze(const std::string& file_name) {
     // TODO: Implemente esta função seguindo estes passos:
@@ -96,23 +97,25 @@ bool walk(Position pos) {
     // 5. Verifique as posições adjacentes (cima, baixo, esquerda, direita)
     //    Para cada posição adjacente:
     std::vector<Position> directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    std::vector<Position> valid_moves;
     //    a. Se for uma posição válida (use is_valid_position()), adicione-a à pilha valid_positions
     for (int i = 0; i < directions.size(); i++){
         int new_row = pos.row + directions[i].row;
         int new_col = pos.col + directions[i].col;
         if(is_valid_position(new_row, new_col)){
-            valid_positions.push({new_row, new_col});
+            valid_moves.push_back({new_row, new_col});
         }
     }
     // 6. Enquanto houver posições válidas na pilha (!valid_positions.empty()):
     //    a. Remova a próxima posição da pilha (valid_positions.top() e valid_positions.pop())
-    while(!valid_positions.empty()){
-        Position next_pos = valid_positions.top();
-        valid_positions.pop();
+    // Se houver múltiplos caminhos, crie threads para explorá-los
+    for (size_t i = 1; i < valid_moves.size(); ++i) {
+        threads.push_back(std::thread(walk, valid_moves[i]));
+    }
 
-        if(walk(next_pos)){
-            return true;
-        }
+    // A thread atual continua a explorar o primeiro caminho
+    if (!valid_moves.empty()) {
+        return walk(valid_moves[0]);
     }
     //    b. Chame walk recursivamente para esta posição
     //    c. Se walk retornar true, propague o retorno (retorne true)
@@ -135,6 +138,11 @@ int main(int argc, char* argv[]) {
 
     bool exit_found = walk(initial_pos);
 
+    // Esperar que todas as threads terminem
+    for (std::thread& t : threads) {
+        t.join();
+    }
+    
     if (exit_found) {
         std::cout << "Saída encontrada!" << std::endl;
     } else {
