@@ -4,6 +4,7 @@
 #include <stack>
 #include <thread>
 #include <chrono>
+#include <mutex>
 
 // Representação do labirinto
 using Maze = std::vector<std::vector<char>>;
@@ -21,6 +22,8 @@ int num_cols;
 std::stack<Position> valid_positions;
 
 std::vector<std::thread> threads; // Para armazenar as threads criadas
+
+std::mutex m;
 // Função para carregar o labirinto de um arquivo
 Position load_maze(const std::string& file_name) {
     // TODO: Implemente esta função seguindo estes passos:
@@ -56,6 +59,7 @@ Position load_maze(const std::string& file_name) {
 
 // Função para imprimir o labirinto
 void print_maze() {
+    //protocolo de entrada e saída
     // TODO: Implemente esta função
     // 1. Percorra a matriz 'maze' usando um loop aninhado
     for(int i = 0; i < num_rows; i++){
@@ -65,6 +69,7 @@ void print_maze() {
         std::cout << "\n"; // 3. Adicione uma quebra de linha (std::cout << '\n') ao final de cada linha do labirinto
     }
     std::cout << "\n";
+    
 }
 
 // Função para verificar se uma posição é válida
@@ -84,20 +89,24 @@ bool is_valid_position(int row, int col) {
 bool walk(Position pos) {
     // TODO: Implemente a lógica de navegação aqui
     // 2. Chame print_maze() para mostrar o estado atual do labirinto
-    print_maze();
     // 3. Adicione um pequeno atraso para visualização:
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    
     // 4. Verifique se a posição atual é a saída (maze[pos.row][pos.col] == 's')
     //    Se for, retorne true
-    if(maze[pos.row][pos.col] == 's')
-        return true;
-    
-    // 1. Marque a posição atual como visitada (maze[pos.row][pos.col] = '.')
-    maze[pos.row][pos.col] = '.';
+    {
+        std::lock_guard<std::mutex> lock(m);
+        print_maze();
+        if (maze[pos.row][pos.col] == 's')
+            return true;
+        maze[pos.row][pos.col] = '.';
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     // 5. Verifique as posições adjacentes (cima, baixo, esquerda, direita)
     //    Para cada posição adjacente:
     std::vector<Position> directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
     std::vector<Position> valid_moves;
+
     //    a. Se for uma posição válida (use is_valid_position()), adicione-a à pilha valid_positions
     for (int i = 0; i < directions.size(); i++){
         int new_row = pos.row + directions[i].row;
@@ -108,8 +117,10 @@ bool walk(Position pos) {
     }
     // 6. Enquanto houver posições válidas na pilha (!valid_positions.empty()):
     //    a. Remova a próxima posição da pilha (valid_positions.top() e valid_positions.pop())
+    
+
     // Se houver múltiplos caminhos, crie threads para explorá-los
-    for (size_t i = 1; i < valid_moves.size(); ++i) {
+    for (int i = 1; i < valid_moves.size(); ++i) {
         threads.push_back(std::thread(walk, valid_moves[i]));
     }
 
